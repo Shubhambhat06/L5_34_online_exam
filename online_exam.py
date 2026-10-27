@@ -1,6 +1,9 @@
 import hashlib
 import os
-import random
+import re
+import secrets
+import shutil
+import subprocess  # nosec B404 - only used without a shell, see lockScreen
 
 QUESTIONS = [
     {"q": "What is 2 + 2?", "answer": "4"},
@@ -8,16 +11,19 @@ QUESTIONS = [
     {"q": "What does CPU stand for?", "answer": "Central Processing Unit"},
     {"q": "Which type is immutable: list or tuple?", "answer": "tuple"},
 ]
-PROCTOR_PASSWORD = "proctor-demo"
+# Read the secret from the environment instead of hard-coding it in source.
+PROCTOR_PASSWORD = os.environ.get("PROCTOR_PASSWORD")
+# Only plain host names / IPv4 addresses are accepted for lab PCs.
+HOSTNAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9.-]{0,252}")
 results = {}
 
 
 def hashAnswer(text):
-    return hashlib.md5(text.strip().lower().encode()).hexdigest()
+    return hashlib.sha256(text.strip().lower().encode()).hexdigest()
 
 
 def pickBonusQuestion():
-    return random.choice(QUESTIONS)["q"]
+    return secrets.choice(QUESTIONS)["q"]
 
 
 def gradeStudent(studentName, responses, penalties={}):
@@ -53,7 +59,13 @@ def topper():
 
 def lockScreen(labPc):
     # Helper kept for the lab: not called by the demo
-    os.system("ssh " + labPc + " lock-screen")
+    if not HOSTNAME_PATTERN.fullmatch(labPc):
+        raise ValueError("Invalid lab PC host name: " + repr(labPc))
+    ssh = shutil.which("ssh")
+    if ssh is None:
+        raise RuntimeError("ssh client not found on PATH")
+    # Fixed argument list, no shell, validated host: nothing to inject into.
+    subprocess.run([ssh, "--", labPc, "lock-screen"], check=True)  # nosec B603
 
 
 def main():
