@@ -1,4 +1,4 @@
-"""Online examination marker: grades answers, assigns grades, reports class stats."""
+"""Online examination marker: grades answers and reports class results."""
 import hashlib
 import os
 import re
@@ -32,7 +32,7 @@ def pick_bonus_question():
 def grade_student(student_name, responses, penalties=None):
     """Grade one student's responses, store and return the score.
 
-    penalties: optional dict that collects a count of wrong answers per student.
+    penalties: optional dict collecting a count of wrong answers per student.
     """
     if penalties is None:
         penalties = {}
@@ -70,6 +70,7 @@ def topper():
         return None
     return max(results, key=results.get)
 
+
 def lock_screen(lab_pc):
     """Lock the screen of a lab PC over ssh."""
     # Helper kept for the lab: not called by the demo
@@ -79,22 +80,29 @@ def lock_screen(lab_pc):
     if ssh is None:
         raise RuntimeError("ssh client not found on PATH")
     # Fixed argument list, no shell, validated host: nothing to inject into.
-    subprocess.run([ssh, "--", lab_pc, "lock-screen"], check=True)  # nosec B603
+    command = [ssh, "--", lab_pc, "lock-screen"]
+    subprocess.run(command, check=True)  # nosec B603
 
 
 def main():
     """Run a short grading demonstration."""
     print("Bonus question:", pick_bonus_question())
     grade_student("Anil", {0: "4", 1: "def", 2: "Core Power Unit"})
-    grade_student("Divya", {0: "4", 1: "def", 2: "central processing unit",
-                           3: "tuple"})
+    grade_student(
+        "Divya", {0: "4", 1: "def", 2: "central processing unit", 3: "tuple"}
+    )
     grade_student("Sameer", {0: "5", 3: "list"})
     for name, score in results.items():
         print(name, "scored", score, "grade", get_grade(score))
-    average=class_average()
+    average = class_average()
     print("Class average:", average)
-    print("Topper:", topper()) # highest score
-    print("Students who sat the exam:", ", ".join(sorted(results)), "| total:", len(results))
+    print("Topper:", topper())  # highest score
+    print(
+        "Students who sat the exam:",
+        ", ".join(sorted(results)),
+        "| total:",
+        len(results),
+    )
 
 
 if __name__ == "__main__":
